@@ -12,55 +12,91 @@ Corrections are made in the original material whenever feasible. This is not a l
 
 ## Addenda
 
+### 04A: Reconstructing Measurements from PCA Scores
+
+**Recorded:** September 13, 2026
+
+PCA gives each observation a score along each principal direction. To reconstruct its measurements, multiply each retained score by that direction's loadings, add the resulting feature contributions, and restore the feature means. If we keep only some directions, the scores on the discarded directions are unavailable. We get an approximation of the original observation.
+
+In 04a's four-observation example, A's original measurements are (13, 24), and the feature means are (10, 20). Its PC1 score is about 4.472, with loadings about (0.894, 0.447). Multiplying gives centered measurements of approximately (4, 2). Adding the means gives (14, 22).
+
+| Representation of A | Feature 1 | Feature 2 |
+| --- | ---: | ---: |
+| Original measurements | 13 | 24 |
+| Reconstructed from PC1 | 14 | 22 |
+| Reconstructed from both components | 13 | 24 |
+
+The one-component result lies on the PC1 line through the mean. A's position along the perpendicular PC2 direction was discarded. Keeping its PC2 score as well restores the missing contribution.
+
+Scikit-learn performs this calculation with `inverse_transform()`. Fit the model to all four observations, then pass their scores back through that fitted model:
+
+```python
+import pandas as pd
+from sklearn.decomposition import PCA
+
+example = pd.DataFrame(
+    {"Feature 1": [13.0, 15.0, 5.0, 7.0], "Feature 2": [24.0, 20.0, 20.0, 16.0]},
+    index=["A", "B", "C", "D"],
+)
+model = PCA(n_components=1, svd_solver="full").fit(example)
+scores = model.transform(example)
+rebuilt = pd.DataFrame(
+    model.inverse_transform(scores), index=example.index, columns=example.columns
+)
+print(rebuilt.round(3))
+```
+
+`transform()` calculates scores using the fitted directions. `inverse_transform()` combines those scores with the same directions and restores the means learned during fitting. With all components retained, this recovers the input measurements apart from numerical rounding. The score table then has as many columns as the input, so there is no reduction in the number of coordinates stored per observation.
+
+If we standardize the features before fitting PCA, its input is on that standardized scale. The reconstructed values are on the same scale. To return to millimeters or grams, multiply each reconstructed column by its saved standard deviation and add its saved original mean. These are the means and scales used before fitting.
+
+To measure reconstruction error across the dataset, subtract the reconstructed values from the inputs, square the differences, sum across features for each observation, then average those sums across observations. With mixed units, use standardized values for this calculation so squared grams and squared millimeters do not get added together. It measures average squared distance on the standardized scale.
+
+Keeping more principal components can reduce that overall error, but an individual measurement need not improve at every step. Likewise, retaining 90% of total variance does not mean each reconstructed value is 90% accurate. A comparison for one measurement illustrates what happened to that value. The dataset-wide calculation describes how much variation the reduced representation lost overall.
+
+### 04A: Categorical Features in PCA
+
+**Recorded:** September 12, 2026
+
+A question in class asked how PCA handles categorical features. PCA operates on numerical inputs, but assigning numbers to categories does not automatically give those numbers a meaningful geometry. Coding three unordered product categories as 1, 2, and 3 would impose an order and equal spacing that the categories do not have.
+
+Separate indicator columns are one possible representation of unordered categories, but their scaling and influence on the analysis still require consideration. Ordered categories also need care: their order may be meaningful without the gaps between successive codes representing equal differences. Our PCA example uses numerical measurements. Including categorical features requires a deliberate encoding choice, not simply replacing labels with numbers.
+
+We will introduce categorical encoding methods on Tuesday, September 15, and develop their use further in the clustering lectures, including their effects on similarity and clustering.
+
 ### 04A: Covariance with a Combined Feature
 
 **Recorded:** September 8, 2026
 
-In PCA, let $x_1$ and $x_2$ be centered features and let $z=ax_1+bx_2$ be the new feature formed with fixed coefficients $a$ and $b$. Each observation has its own value of $z$.
+In PCA, let <img class="equation_image" title="x_1" src="https://auburn.instructure.com/equation_images/x_1?scale=1" alt="x_1" /> and <img class="equation_image" title="x_2" src="https://auburn.instructure.com/equation_images/x_2?scale=1" alt="x_2" /> be centered features and let <img class="equation_image" title="z=ax_1+bx_2" src="https://auburn.instructure.com/equation_images/z%253Dax_1%252Bbx_2?scale=1" alt="z=ax_1+bx_2" /> be the new feature formed with fixed coefficients <img class="equation_image" title="a" src="https://auburn.instructure.com/equation_images/a?scale=1" alt="a" /> and <img class="equation_image" title="b" src="https://auburn.instructure.com/equation_images/b?scale=1" alt="b" />. Each observation has its own value of <img class="equation_image" title="z" src="https://auburn.instructure.com/equation_images/z?scale=1" alt="z" />.
 
-Multiplying the covariance matrix $S$ by the direction vector $w$ gives two equivalent expressions:
+Multiplying the covariance matrix <img class="equation_image" title="S" src="https://auburn.instructure.com/equation_images/S?scale=1" alt="S" /> by the direction vector <img class="equation_image" title="w" src="https://auburn.instructure.com/equation_images/w?scale=1" alt="w" /> gives two equivalent expressions:
 
-$$
-Sw=\begin{bmatrix}
-a\operatorname{Var}(x_1)+b\operatorname{Cov}(x_1,x_2)\\
-a\operatorname{Cov}(x_1,x_2)+b\operatorname{Var}(x_2)
-\end{bmatrix}
-=\begin{bmatrix}\operatorname{Cov}(x_1,z)\\\operatorname{Cov}(x_2,z)\end{bmatrix}
-$$
+<img class="equation_image" title="Sw=\begin{bmatrix} a\operatorname{Var}(x_1)+b\operatorname{Cov}(x_1,x_2)\\ a\operatorname{Cov}(x_1,x_2)+b\operatorname{Var}(x_2) \end{bmatrix} =\begin{bmatrix}\operatorname{Cov}(x_1,z)\\\operatorname{Cov}(x_2,z)\end{bmatrix}" src="https://auburn.instructure.com/equation_images/Sw%253D%255Cbegin%257Bbmatrix%257D%2520a%255Coperatorname%257BVar%257D%2528x_1%2529%252Bb%255Coperatorname%257BCov%257D%2528x_1%252Cx_2%2529%255C%255C%2520a%255Coperatorname%257BCov%257D%2528x_1%252Cx_2%2529%252Bb%255Coperatorname%257BVar%257D%2528x_2%2529%2520%255Cend%257Bbmatrix%257D%2520%253D%255Cbegin%257Bbmatrix%257D%255Coperatorname%257BCov%257D%2528x_1%252Cz%2529%255C%255C%255Coperatorname%257BCov%257D%2528x_2%252Cz%2529%255Cend%257Bbmatrix%257D?scale=1" alt="Sw=\begin{bmatrix} a\operatorname{Var}(x_1)+b\operatorname{Cov}(x_1,x_2)\\ a\operatorname{Cov}(x_1,x_2)+b\operatorname{Var}(x_2) \end{bmatrix} =\begin{bmatrix}\operatorname{Cov}(x_1,z)\\\operatorname{Cov}(x_2,z)\end{bmatrix}" />
 
-To see why, substitute the definition of $z$ into the first entry of the right-hand vector:
+To see why, substitute the definition of <img class="equation_image" title="z" src="https://auburn.instructure.com/equation_images/z?scale=1" alt="z" /> into the first entry of the right-hand vector:
 
-$$
-\operatorname{Cov}(x_1,z)=\operatorname{Cov}(x_1,ax_1+bx_2)
-$$
+<img class="equation_image" title="\operatorname{Cov}(x_1,z)=\operatorname{Cov}(x_1,ax_1+bx_2)" src="https://auburn.instructure.com/equation_images/%255Coperatorname%257BCov%257D%2528x_1%252Cz%2529%253D%255Coperatorname%257BCov%257D%2528x_1%252Cax_1%252Bbx_2%2529?scale=1" alt="\operatorname{Cov}(x_1,z)=\operatorname{Cov}(x_1,ax_1+bx_2)" />
 
 Separate the two terms and pull out their fixed coefficients:
 
-$$
-\operatorname{Cov}(x_1,z)=a\operatorname{Cov}(x_1,x_1)+b\operatorname{Cov}(x_1,x_2)
-$$
+<img class="equation_image" title="\operatorname{Cov}(x_1,z)=a\operatorname{Cov}(x_1,x_1)+b\operatorname{Cov}(x_1,x_2)" src="https://auburn.instructure.com/equation_images/%255Coperatorname%257BCov%257D%2528x_1%252Cz%2529%253Da%255Coperatorname%257BCov%257D%2528x_1%252Cx_1%2529%252Bb%255Coperatorname%257BCov%257D%2528x_1%252Cx_2%2529?scale=1" alt="\operatorname{Cov}(x_1,z)=a\operatorname{Cov}(x_1,x_1)+b\operatorname{Cov}(x_1,x_2)" />
 
 The covariance of a feature with itself is its variance, so:
 
-$$
-\operatorname{Cov}(x_1,z)=a\operatorname{Var}(x_1)+b\operatorname{Cov}(x_1,x_2)
-$$
+<img class="equation_image" title="\operatorname{Cov}(x_1,z)=a\operatorname{Var}(x_1)+b\operatorname{Cov}(x_1,x_2)" src="https://auburn.instructure.com/equation_images/%255Coperatorname%257BCov%257D%2528x_1%252Cz%2529%253Da%255Coperatorname%257BVar%257D%2528x_1%2529%252Bb%255Coperatorname%257BCov%257D%2528x_1%252Cx_2%2529?scale=1" alt="\operatorname{Cov}(x_1,z)=a\operatorname{Var}(x_1)+b\operatorname{Cov}(x_1,x_2)" />
 
 That is exactly the first entry of the left-hand vector. The second entry follows the same steps:
 
-$$
-\operatorname{Cov}(x_2,z)=a\operatorname{Cov}(x_2,x_1)+b\operatorname{Var}(x_2)
-$$
+<img class="equation_image" title="\operatorname{Cov}(x_2,z)=a\operatorname{Cov}(x_2,x_1)+b\operatorname{Var}(x_2)" src="https://auburn.instructure.com/equation_images/%255Coperatorname%257BCov%257D%2528x_2%252Cz%2529%253Da%255Coperatorname%257BCov%257D%2528x_2%252Cx_1%2529%252Bb%255Coperatorname%257BVar%257D%2528x_2%2529?scale=1" alt="\operatorname{Cov}(x_2,z)=a\operatorname{Cov}(x_2,x_1)+b\operatorname{Var}(x_2)" />
 
-Covariance is symmetric, so $\operatorname{Cov}(x_2,x_1)=\operatorname{Cov}(x_1,x_2)$. This gives the second entry of the left-hand vector.
+Covariance is symmetric, so <img class="equation_image" title="\operatorname{Cov}(x_2,x_1)=\operatorname{Cov}(x_1,x_2)" src="https://auburn.instructure.com/equation_images/%255Coperatorname%257BCov%257D%2528x_2%252Cx_1%2529%253D%255Coperatorname%257BCov%257D%2528x_1%252Cx_2%2529?scale=1" alt="\operatorname{Cov}(x_2,x_1)=\operatorname{Cov}(x_1,x_2)" />. This gives the second entry of the left-hand vector.
 
-Why does covariance distribute this way? For centered data, covariance sums products and divides by $n-1$. At each observation, the product used for the first entry is:
+Why does covariance distribute this way? For centered data, covariance sums products and divides by <img class="equation_image" title="n-1" src="https://auburn.instructure.com/equation_images/n-1?scale=1" alt="n-1" />. At each observation, the product used for the first entry is:
 
-$$
-x_1z=x_1(ax_1+bx_2)=ax_1^2+bx_1x_2
-$$
+<img class="equation_image" title="x_1z=x_1(ax_1+bx_2)=ax_1^2+bx_1x_2" src="https://auburn.instructure.com/equation_images/x_1z%253Dx_1%2528ax_1%252Bbx_2%2529%253Dax_1%255E2%252Bbx_1x_2?scale=1" alt="x_1z=x_1(ax_1+bx_2)=ax_1^2+bx_1x_2" />
 
-Summing across observations and dividing by $n-1$ gives $a$ times the variance of $x_1$, plus $b$ times the covariance of $x_1$ and $x_2$.
+Summing across observations and dividing by <img class="equation_image" title="n-1" src="https://auburn.instructure.com/equation_images/n-1?scale=1" alt="n-1" /> gives <img class="equation_image" title="a" src="https://auburn.instructure.com/equation_images/a?scale=1" alt="a" /> times the variance of <img class="equation_image" title="x_1" src="https://auburn.instructure.com/equation_images/x_1?scale=1" alt="x_1" />, plus <img class="equation_image" title="b" src="https://auburn.instructure.com/equation_images/b?scale=1" alt="b" /> times the covariance of <img class="equation_image" title="x_1" src="https://auburn.instructure.com/equation_images/x_1?scale=1" alt="x_1" /> and <img class="equation_image" title="x_2" src="https://auburn.instructure.com/equation_images/x_2?scale=1" alt="x_2" />.
 
 ## Errata
 
