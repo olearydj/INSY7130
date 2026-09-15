@@ -1,0 +1,28 @@
+{
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+  "sentence_transformers_version": "6.0.1",
+  "texts": [
+    "The pump is vibrating more than usual.",
+    "Unusually strong vibration is coming from the pump.",
+    "The pump is not vibrating more than usual.",
+    "The pump is leaking water around its seal.",
+    "Water is escaping from the pump seal.",
+    "The motor temperature is above the normal range.",
+    "The motor is overheating.",
+    "The replacement pump will arrive on Friday.",
+    "Delivery of the new pump is scheduled for Friday.",
+    "The office printer needs more paper."
+  ],
+  "shape": [
+    10,
+    384
+  ],
+  "vector_sha256": "8b763f8c94e8360dfa255ee00f56cae53f9fbaecfebc9c74ab3b9f46afaf2e41",
+  "created": "2026-09-14",
+  "source": "Instructor-authored, invented maintenance reports.",
+  "normalization": "Unit L2 norm per row; vectors stored as float32.",
+  "model_card": "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2",
+  "asset": "05a-text-vectors.npz",
+  "asset_sha256": "ddc8b6ce482cfae9f1c8f7207da11979146e9196e50fb330440b41ef98b0b8d9"
+}
