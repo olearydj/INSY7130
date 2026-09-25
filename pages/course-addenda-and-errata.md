@@ -176,3 +176,11 @@ Multiplying every feature of every observation by the same positive factor multi
 **Recorded:** September 7, 2026
 
 Jaccard similarity divides the number of products both customers purchased by the number either customer purchased: the intersection divided by the union. Products purchased by only one customer count in the union but not the intersection, lowering similarity for a fixed intersection. Products purchased by neither customer count in neither and have no effect on the score.
+
+### 05A Continuation: Placing New Observations with UMAP
+
+**Recorded:** September 25, 2026
+
+In the September 17 lecture, I described placing new observations in a UMAP map as “online learning” and also suggested that doing so refits the model. Those are different operations. After fitting a UMAP model to the original data, `transform()` can place new observations in the existing map without refitting it. The original observations keep their fitted positions.
+
+To update the learned representation itself, we would need a separate fitting or update procedure and would then reassess the resulting map. Simply calling `transform()` does not update the original map. See the [UMAP guide to transforming new data](https://umap-learn.readthedocs.io/en/latest/transform.html).
